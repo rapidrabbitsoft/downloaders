@@ -56,7 +56,7 @@ if [[ ${#URLS[@]} -eq 0 ]]; then
 fi
 
 # Ensure downloads folder exists
-mkdir -p Downloads
+mkdir -p "Downloads"
 
 # Start downloading
 echo -e "${CYAN}🔄 Starting to download videos${NC}"
@@ -65,7 +65,7 @@ echo -e "${CYAN}🔄 Starting to download videos${NC}"
 for url in "${URLS[@]}"; do
     echo -e "${YELLOW}⬇️  Downloading:${NC} $url"
 
-    if yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" "Downloads/$url"; then
+    if yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" "$url" -o "Downloads/%(title)s.%(ext)s"; then
         echo -e "${GREEN}✅ Downloaded:${NC} $url"
     else
         echo -e "${RED}❌ Donwload Failed:${NC} $url"
