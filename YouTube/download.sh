@@ -140,6 +140,11 @@ get_best_format() {
     # Get available formats
     formats=$(yt-dlp -F "$url" 2>/dev/null)
     
+    if [[ -z "$formats" ]]; then
+        log "Could not retrieve formats for: $url" "ERROR"
+        return 1
+    fi
+
     # Try different format combinations in order of preference
     if echo "$formats" | grep -q "bestvideo\[ext=mp4\]+bestaudio\[ext=m4a\]"; then
         echo "bestvideo[ext=mp4]+bestaudio[ext=m4a]"
@@ -149,8 +154,19 @@ get_best_format() {
         echo "bestvideo[ext=webm]+bestaudio[ext=webm]"
     elif echo "$formats" | grep -q "best\[ext=webm\]"; then
         echo "best[ext=webm]"
-    else
+    elif echo "$formats" | grep -q "bestvideo+bestaudio"; then
+        echo "bestvideo+bestaudio"
+    elif echo "$formats" | grep -q "best"; then
         echo "best"
+    else
+        # If no preferred formats are available, try to get the highest quality format
+        local highest_quality=$(echo "$formats" | grep -E "^[0-9]+" | sort -nr | head -n1 | awk '{print $1}')
+        if [[ -n "$highest_quality" ]]; then
+            echo "$highest_quality"
+        else
+            log "No suitable formats found for: $url" "ERROR"
+            return 1
+        fi
     fi
 }
 
