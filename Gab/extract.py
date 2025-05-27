@@ -56,17 +56,8 @@ console_handler.setFormatter(
     )
 )
 
-# Create file handler for plain text logging
-file_handler = logging.FileHandler("extract.log")
-file_handler.setFormatter(
-    logging.Formatter(
-        "[%(asctime)s] [%(levelname)s] [%(message)s]", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-)
-
 # Add handlers to logger
 logger.addHandler(console_handler)
-logger.addHandler(file_handler)
 
 
 def extract_video_url_from_file(filename):

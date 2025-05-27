@@ -20,7 +20,6 @@ DOWNLOAD_DIR="Downloads"
 MAX_RETRIES=3
 RETRY_DELAY=5
 TEMP_DIR="/tmp/gab_downloader"
-LOG_FILE="gab_downloader.log"
 
 # Log function
 log() {
@@ -50,9 +49,6 @@ log() {
     
     # Print colored output to terminal
     echo -e "${color}[$timestamp] [$level] $message${NC}"
-    
-    # Write plain text to log file
-    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
 }
 
 # Display usage
