@@ -1,22 +1,68 @@
 # YouTube Video Downloader
 
-This script takes YouTube Video URLs and downloads the actual video.
-Alternatively you can add a list of urls in the downloads.txt file.
+A powerful script for downloading YouTube videos in the best available quality. Supports both single video downloads and bulk downloads from a list.
 
-## Useage:
+## Features
 
-~~~bash
-./download.sh --help
-./download.sh -u url1
-./download.sh -u url1,url2
-# Define a downloads.txt file and download each url line by line
-# NOTE: must have a blank space at the end the file
-~~~
+- Downloads videos in the best available quality (MP4)
+- Supports both single URLs and bulk downloads
+- Automatic format selection (best video + audio)
+- Error handling and failed download tracking
+- Progress indicators and colored output
 
-### Installation Requirements:
+## Usage
 
-* **Ubuntu/Debian**: `sudo apt install python3 python3-pip ffmpeg`
-* **CentOS/RHEL/Fedora**: `sudo yum/dnf python3 python3-pip ffmpeg && pip3 install -U yt-dlp`
-* **macOS**: `brew install ffmpeg yt-dlp`
-* **Windows**: Download binaries and add them to your `PATH`.
-* **Arch Linux/Manjaro**: `sudo pacman -Syu yt-dlp`
+### Single Video Download
+```bash
+./download.sh -u "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+### Multiple Videos Download
+```bash
+./download.sh -u "url1,url2,url3"
+```
+
+### Bulk Download from File
+1. Create a `downloads.txt` file
+2. Add one URL per line
+3. Run the script without arguments:
+```bash
+./download.sh
+```
+
+## Installation Requirements
+
+### Ubuntu/Debian
+```bash
+sudo apt update
+sudo apt install python3 python3-pip ffmpeg
+pip3 install -U yt-dlp
+```
+
+### CentOS/RHEL/Fedora
+```bash
+sudo yum/dnf install python3 python3-pip ffmpeg
+pip3 install -U yt-dlp
+```
+
+### macOS
+```bash
+brew install ffmpeg yt-dlp
+```
+
+### Windows
+1. Download and install Python from [python.org](https://python.org)
+2. Download ffmpeg from [ffmpeg.org](https://ffmpeg.org)
+3. Add both to your system PATH
+4. Install yt-dlp: `pip install -U yt-dlp`
+
+### Arch Linux/Manjaro
+```bash
+sudo pacman -Syu yt-dlp ffmpeg
+```
+
+## Notes
+
+- Downloaded videos are saved in the `Downloads` directory
+- Failed downloads are automatically tracked and saved to `downloads.txt`
+- The script requires an empty line at the end of `downloads.txt`

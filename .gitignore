@@ -1,0 +1,19 @@
+# Ignore downloads.txt files
+YouTube/downloads.txt
+Gab/downloads.txt
+
+# Ignore log files
+*.log
+
+# Ignore downloaded videos
+**/Downloads/
+Downloads/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore temporary files
+*.tmp
+*.temp
+/tmp/ 

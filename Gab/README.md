@@ -1,29 +1,84 @@
-# GAB Video Downloader
+# Gab Video Downloader
 
-This script takes GAB Video URLs and downloads the actual video.
-Alternatively you can add a list of urls in the downloads.txt file.
+A script for downloading videos from the Gab platform. Supports both single video downloads and bulk downloads from a list.
 
-## Useage:
+## Features
 
-~~~bash
-./download.sh --help
-./download.sh -u url1
-./download.sh -u url1,url2
-# Define a downloads.txt file and download each url line by line
-# NOTE: must have a blank space at the end the file
-~~~
+- Downloads videos from Gab platform
+- Supports both single URLs and bulk downloads
+- Automatic video URL extraction from HTML
+- Error handling and failed download tracking
+- Progress indicators and colored output
 
-### Installation Requirements:
+## Usage
 
-* **Ubuntu/Debian**: `sudo apt install python3 python3-pip`
-* **CentOS/RHEL/Fedora**: `sudo yum/dnf python3 python3-pip && pip3 install -U`
-* **macOS**: `brew install python3`
-* **Windows**: Download binaries and add them to your `PATH`.
-* **Arch Linux/Manjaro**: `sudo pacman -Syu yt-dlp`
+### Single Video Download
+```bash
+./download.sh -u "https://gab.com/video/VIDEO_ID"
+```
 
-# Need python installed to process the HTML downloaded
-~~~bash
+### Multiple Videos Download
+```bash
+./download.sh -u "url1,url2,url3"
+```
+
+### Bulk Download from File
+1. Create a `downloads.txt` file
+2. Add one URL per line
+3. Run the script without arguments:
+```bash
+./download.sh
+```
+
+## Installation Requirements
+
+### Ubuntu/Debian
+```bash
+sudo apt update
+sudo apt install python3 python3-pip
+pip3 install beautifulsoup4 requests
+```
+
+### CentOS/RHEL/Fedora
+```bash
+sudo yum/dnf install python3 python3-pip
+pip3 install beautifulsoup4 requests
+```
+
+### macOS
+```bash
+brew install python3
+pip3 install beautifulsoup4 requests
+```
+
+### Windows
+1. Download and install Python from [python.org](https://python.org)
+2. Install required packages:
+```bash
+pip install beautifulsoup4 requests
+```
+
+### Arch Linux/Manjaro
+```bash
+sudo pacman -Syu python-beautifulsoup4 python-requests
+```
+
+## Setup
+
+1. Install Python dependencies:
+```bash
 pipenv shell
 pipenv install
-chmod +x extract.py downloads.sh
-~~~
+```
+
+2. Make scripts executable:
+```bash
+chmod +x extract.py download.sh
+```
+
+## Notes
+
+- Downloaded videos are saved in the `Downloads` directory
+- Failed downloads are automatically tracked and saved to `downloads.txt`
+- The script requires an empty line at the end of `downloads.txt`
+- The script uses BeautifulSoup for HTML parsing and video URL extraction
