@@ -152,41 +152,8 @@ log "Starting to download ${#URLS[@]} Facebook videos" "INFO"
 
 # Function to get best available format for Facebook
 get_best_format() {
-    local url="$1"
-    local formats
-    
-    # Get available formats
-    formats=$(yt-dlp -F "$url" 2>/dev/null)
-    
-    if [[ -z "$formats" ]]; then
-        log "Could not retrieve formats for: $url" "ERROR"
-        return 1
-    fi
-
-    # Facebook typically has fewer format options than YouTube
-    # Try different format combinations in order of preference
-    if echo "$formats" | grep -q "best\[ext=mp4\]"; then
-        echo "best[ext=mp4]"
-    elif echo "$formats" | grep -q "bestvideo\[ext=mp4\]+bestaudio\[ext=m4a\]"; then
-        echo "bestvideo[ext=mp4]+bestaudio[ext=m4a]"
-    elif echo "$formats" | grep -q "best\[ext=webm\]"; then
-        echo "best[ext=webm]"
-    elif echo "$formats" | grep -q "bestvideo\[ext=webm\]+bestaudio\[ext=webm\]"; then
-        echo "bestvideo[ext=webm]+bestaudio[ext=webm]"
-    elif echo "$formats" | grep -q "bestvideo+bestaudio"; then
-        echo "bestvideo+bestaudio"
-    elif echo "$formats" | grep -q "best"; then
-        echo "best"
-    else
-        # If no preferred formats are available, try to get the highest quality format
-        local highest_quality=$(echo "$formats" | grep -E "^[0-9]+" | sort -nr | head -n1 | awk '{print $1}')
-        if [[ -n "$highest_quality" ]]; then
-            echo "$highest_quality"
-        else
-            log "No suitable formats found for: $url" "ERROR"
-            return 1
-        fi
-    fi
+    # Always use 'best' for Facebook to ensure video+audio merging
+    echo "best"
 }
 
 # Function to download a single video with retries
@@ -210,6 +177,7 @@ download_video() {
                   --no-playlist \
                   --no-warnings \
                   --progress \
+                  --merge-output-format mp4 \
                   "$url" \
                   -o "$DOWNLOAD_DIR/%(title)s.%(ext)s"; then
             return 0
