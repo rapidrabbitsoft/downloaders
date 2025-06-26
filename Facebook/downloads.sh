@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# YouTube Video Downloader
-# Downloads YouTube videos in the best available quality
+# Facebook Video Downloader
+# Downloads Facebook videos and reels in the best available quality
 # Supports both single URLs and bulk downloads from a file
 
 # Color codes for prettifying the output
@@ -54,7 +54,7 @@ log() {
 usage() {
     log "Usage: $0 [-u url1,url2,...] [-d directory] [-r retries] [-f]" "INFO"
     log "Options:" "INFO"
-    log "  -u, --urls     Comma-separated list of YouTube URLs" "INFO"
+    log "  -u, --urls     Comma-separated list of Facebook URLs" "INFO"
     log "  -d, --dir      Download directory (default: Downloads)" "INFO"
     log "  -r, --retries  Number of retry attempts (default: 3)" "INFO"
     log "  -f, --list-formats  List available formats without downloading" "INFO"
@@ -116,9 +116,27 @@ if [[ ${#URLS[@]} -eq 0 ]]; then
     exit 1
 fi
 
+# Filter for Facebook URLs only
+FACEBOOK_URLS=()
+for url in "${URLS[@]}"; do
+    if [[ "$url" =~ facebook\.com.*/(videos|reel)/ ]]; then
+        FACEBOOK_URLS+=("$url")
+    else
+        log "Skipping non-Facebook URL: $url" "WARNING"
+    fi
+done
+
+# Update URLS array with filtered Facebook URLs
+URLS=("${FACEBOOK_URLS[@]}")
+
+if [[ ${#URLS[@]} -eq 0 ]]; then
+    log "No valid Facebook URLs found for downloading" "ERROR"
+    exit 1
+fi
+
 # If list-formats flag is set, show formats and exit
 if [[ "$LIST_FORMATS" == true ]]; then
-    log "Listing available formats for ${#URLS[@]} video(s)" "INFO"
+    log "Listing available formats for ${#URLS[@]} Facebook video(s)" "INFO"
     for url in "${URLS[@]}"; do
         log "Formats for: $url" "INFO"
         yt-dlp -F "$url"
@@ -130,9 +148,9 @@ fi
 mkdir -p "$DOWNLOAD_DIR"
 
 # Start downloading
-log "Starting to download ${#URLS[@]} videos" "INFO"
+log "Starting to download ${#URLS[@]} Facebook videos" "INFO"
 
-# Function to get best available format
+# Function to get best available format for Facebook
 get_best_format() {
     local url="$1"
     local formats
@@ -145,15 +163,30 @@ get_best_format() {
         return 1
     fi
 
-    # Check if this is a DRM protected video (only storyboard images available)
-    if echo "$formats" | grep -q "storyboard" && ! echo "$formats" | grep -q "video only\|audio only"; then
-        log "This video appears to be DRM protected or unavailable" "ERROR"
-        return 1
+    # Facebook typically has fewer format options than YouTube
+    # Try different format combinations in order of preference
+    if echo "$formats" | grep -q "best\[ext=mp4\]"; then
+        echo "best[ext=mp4]"
+    elif echo "$formats" | grep -q "bestvideo\[ext=mp4\]+bestaudio\[ext=m4a\]"; then
+        echo "bestvideo[ext=mp4]+bestaudio[ext=m4a]"
+    elif echo "$formats" | grep -q "best\[ext=webm\]"; then
+        echo "best[ext=webm]"
+    elif echo "$formats" | grep -q "bestvideo\[ext=webm\]+bestaudio\[ext=webm\]"; then
+        echo "bestvideo[ext=webm]+bestaudio[ext=webm]"
+    elif echo "$formats" | grep -q "bestvideo+bestaudio"; then
+        echo "bestvideo+bestaudio"
+    elif echo "$formats" | grep -q "best"; then
+        echo "best"
+    else
+        # If no preferred formats are available, try to get the highest quality format
+        local highest_quality=$(echo "$formats" | grep -E "^[0-9]+" | sort -nr | head -n1 | awk '{print $1}')
+        if [[ -n "$highest_quality" ]]; then
+            echo "$highest_quality"
+        else
+            log "No suitable formats found for: $url" "ERROR"
+            return 1
+        fi
     fi
-
-    # For YouTube, use the built-in best format selection which handles audio/video merging
-    # This is more reliable than trying to parse format IDs manually
-    echo "best"
 }
 
 # Function to download a single video with retries
@@ -173,12 +206,10 @@ download_video() {
         
         log "Selected format: $format" "INFO"
         
-        # Use yt-dlp with best format which automatically handles audio/video merging
         if yt-dlp -f "$format" \
                   --no-playlist \
                   --no-warnings \
                   --progress \
-                  --merge-output-format mp4 \
                   "$url" \
                   -o "$DOWNLOAD_DIR/%(title)s.%(ext)s"; then
             return 0
@@ -217,5 +248,5 @@ if [ ${#FAILED_URLS[@]} -ne 0 ]; then
 else
     rm -f downloads.txt
     touch downloads.txt
-    log "All videos downloaded successfully!" "SUCCESS"
-fi
+    log "All Facebook videos downloaded successfully!" "SUCCESS"
+fi 
