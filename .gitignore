@@ -1,6 +1,6 @@
-# Ignore downloads.txt files
-YouTube/downloads.txt
-Gab/downloads.txt
+# Ignore all downloads.txt files in any subdirectory
+downloads.txt
+*/downloads.txt
 
 # Ignore log files
 *.log
