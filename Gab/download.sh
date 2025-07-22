@@ -93,9 +93,9 @@ for cmd in curl wget python3; do
 done
 
 # Check if Python dependencies are installed
-if ! python3 -c "import bs4" &> /dev/null; then
+if ! pipenv run python -c "import bs4" &> /dev/null; then
     log "BeautifulSoup4 is not installed" "ERROR"
-    log "Please install it using: pip3 install beautifulsoup4" "INFO"
+    log "Please install it using: pipenv install" "INFO"
     exit 1
 fi
 
@@ -108,16 +108,13 @@ if [[ ${#URLS[@]} -eq 0 ]]; then
                 URLS+=("$line")
             fi
         done < "downloads.txt"
-    else
-        log "No valid URLs supplied for downloading" "ERROR"
-        exit 1
     fi
 fi
 
 # Ensure that we have a valid list of URLs
 if [[ ${#URLS[@]} -eq 0 ]]; then
-    log "No valid URLs supplied for downloading" "ERROR"
-    exit 1
+    log "No downloads found, skipping..." "INFO"
+    exit 0
 fi
 
 # Ensure download directory exists
@@ -125,6 +122,26 @@ mkdir -p "$DOWNLOAD_DIR"
 
 # Create temporary directory
 mkdir -p "$TEMP_DIR"
+
+# Function to truncate filename if too long
+truncate_filename() {
+    local filename="$1"
+    local max_length=100
+    
+    # Get the extension
+    local extension=""
+    if [[ "$filename" =~ \.([^.]*)$ ]]; then
+        extension=".${BASH_REMATCH[1]}"
+        filename="${filename%.*}"
+    fi
+    
+    # Truncate the base filename if too long
+    if [[ ${#filename} -gt $max_length ]]; then
+        filename="${filename:0:$max_length}"
+    fi
+    
+    echo "${filename}${extension}"
+}
 
 # Function to download a single video with retries
 download_video() {
@@ -139,11 +156,12 @@ download_video() {
         fi
         
         # Extract video URL
-        video_url=$(python3 extract.py --file "$TEMP_DIR/temp.html")
+        video_url=$(pipenv run python extract.py --file "$TEMP_DIR/temp.html")
         
         if [[ -n "$video_url" ]]; then
-            # Extract filename from URL
+            # Extract filename from URL and truncate if too long
             video_filename=$(basename "$video_url")
+            video_filename=$(truncate_filename "$video_filename")
             target_path="$DOWNLOAD_DIR/$video_filename"
             
             # Check if file already exists

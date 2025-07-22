@@ -95,6 +95,12 @@ if ! command -v yt-dlp &> /dev/null; then
     exit 1
 fi
 
+# Check if ffmpeg is installed (needed for best quality merging)
+if ! command -v ffmpeg &> /dev/null; then
+    log "ffmpeg is not installed - will use fallback merging" "WARNING"
+    log "For best quality, install ffmpeg: brew install ffmpeg" "INFO"
+fi
+
 # If no URLs are provided via flags, check for downloads.txt file
 if [[ ${#URLS[@]} -eq 0 ]]; then
     if [[ -f "downloads.txt" ]]; then
@@ -104,16 +110,13 @@ if [[ ${#URLS[@]} -eq 0 ]]; then
                 URLS+=("$line")
             fi
         done < "downloads.txt"
-    else
-        log "No valid URLs supplied for downloading" "ERROR"
-        exit 1
     fi
 fi
 
 # Ensure that we have a valid list of URLs
 if [[ ${#URLS[@]} -eq 0 ]]; then
-    log "No valid URLs supplied for downloading" "ERROR"
-    exit 1
+    log "No downloads found, skipping..." "INFO"
+    exit 0
 fi
 
 # If list-formats flag is set, show formats and exit
@@ -151,9 +154,9 @@ get_best_format() {
         return 1
     fi
 
-    # For YouTube, use the built-in best format selection which handles audio/video merging
-    # This is more reliable than trying to parse format IDs manually
-    echo "best"
+    # For YouTube, use the bestvideo+bestaudio format selection for highest quality
+    # This ensures we get the best video and best audio separately, then merge them
+    echo "bestvideo+bestaudio/best"
 }
 
 # Function to download a single video with retries
@@ -179,8 +182,12 @@ download_video() {
                   --no-warnings \
                   --progress \
                   --merge-output-format mp4 \
+                  --prefer-ffmpeg \
+                  --audio-quality 0 \
+                  --video-multistreams \
+                  --audio-multistreams \
                   "$url" \
-                  -o "$DOWNLOAD_DIR/%(title)s.%(ext)s"; then
+                  -o "$DOWNLOAD_DIR/%(title.100)s.%(ext)s"; then
             return 0
         fi
         
