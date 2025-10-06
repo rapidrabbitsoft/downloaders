@@ -88,7 +88,40 @@ while [[ "$1" == -* ]]; do
     esac
 done
 
-# Check if yt-dlp is installed
+# Function to check if yt-dlp needs updating
+check_and_update_ytdlp() {
+    local ytdlp_path="/usr/local/bin/yt-dlp"
+    local last_check_file="$HOME/.yt-dlp-last-check"
+    local current_date=$(date +%Y-%m-%d)
+    local last_check_date=""
+    
+    # Read last check date if file exists
+    if [[ -f "$last_check_file" ]]; then
+        last_check_date=$(cat "$last_check_file")
+    fi
+    
+    # Check if we need to update (once per day or if yt-dlp doesn't exist)
+    if [[ "$last_check_date" != "$current_date" ]] || [[ ! -f "$ytdlp_path" ]]; then
+        log "Checking for yt-dlp updates..." "INFO"
+        
+        # Download latest yt-dlp
+        if curl -L https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp -o "$ytdlp_path" 2>/dev/null; then
+            chmod a+rx "$ytdlp_path"
+            log "yt-dlp updated successfully" "SUCCESS"
+        else
+            log "Failed to update yt-dlp, using existing version" "WARNING"
+        fi
+        
+        # Update last check date
+        echo "$current_date" > "$last_check_file"
+    else
+        log "yt-dlp is up to date (checked today)" "INFO"
+    fi
+}
+
+# Check if yt-dlp is installed and update if needed
+check_and_update_ytdlp
+
 if ! command -v yt-dlp &> /dev/null; then
     log "yt-dlp is not installed" "ERROR"
     log "Please install it using: pip3 install -U yt-dlp" "INFO"
@@ -159,6 +192,42 @@ get_best_format() {
     echo "bestvideo+bestaudio/best"
 }
 
+
+# Function to strip emojis and clean filename
+clean_filename() {
+    local filename="$1"
+    # Remove emojis and other non-ASCII characters, keep only alphanumeric, spaces, hyphens, underscores
+    echo "$filename" | sed 's/[^a-zA-Z0-9 -_]//g' | sed 's/  */ /g' | sed 's/^ *//g' | sed 's/ *$//g'
+}
+
+# Function to fetch video title and generate safe filename
+generate_filename() {
+    local url="$1"
+    local video_id=$(echo "$url" | grep -oP '(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)' | head -1)
+    
+    # Try to get the video title
+    local title=""
+    if command -v yt-dlp &> /dev/null; then
+        title=$(yt-dlp --get-title --no-warnings "$url" 2>/dev/null | head -1)
+    fi
+    
+    if [[ -n "$title" && "$title" != "NA" ]]; then
+        # Clean the title and use it
+        local clean_title=$(clean_filename "$title")
+        if [[ -n "$clean_title" ]]; then
+            echo "${clean_title}-${video_id}"
+        else
+            echo "youtube_${video_id}"
+        fi
+    else
+        # Fallback to hash-based filename
+        if [[ -z "$video_id" ]]; then
+            video_id=$(echo "$url" | md5sum | cut -c1-12)
+        fi
+        echo "youtube_${video_id}"
+    fi
+}
+
 # Function to download a single video with retries
 download_video() {
     local url="$1"
@@ -176,7 +245,12 @@ download_video() {
         
         log "Selected format: $format" "INFO"
         
+        # Generate a clean filename
+        local filename=$(generate_filename "$url")
+        log "Generated filename: $filename" "INFO"
+        
         # Use yt-dlp with best format which automatically handles audio/video merging
+        # Use a robust filename template that handles cases where title is unavailable
         if yt-dlp -f "$format" \
                   --no-playlist \
                   --no-warnings \
@@ -187,7 +261,7 @@ download_video() {
                   --video-multistreams \
                   --audio-multistreams \
                   "$url" \
-                  -o "$DOWNLOAD_DIR/%(title.100)s.%(ext)s"; then
+                  -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
             return 0
         fi
         

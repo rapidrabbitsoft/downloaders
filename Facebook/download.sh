@@ -88,7 +88,40 @@ while [[ "$1" == -* ]]; do
     esac
 done
 
-# Check if yt-dlp is installed
+# Function to check if yt-dlp needs updating
+check_and_update_ytdlp() {
+    local ytdlp_path="/usr/local/bin/yt-dlp"
+    local last_check_file="$HOME/.yt-dlp-last-check"
+    local current_date=$(date +%Y-%m-%d)
+    local last_check_date=""
+    
+    # Read last check date if file exists
+    if [[ -f "$last_check_file" ]]; then
+        last_check_date=$(cat "$last_check_file")
+    fi
+    
+    # Check if we need to update (once per day or if yt-dlp doesn't exist)
+    if [[ "$last_check_date" != "$current_date" ]] || [[ ! -f "$ytdlp_path" ]]; then
+        log "Checking for yt-dlp updates..." "INFO"
+        
+        # Download latest yt-dlp
+        if curl -L https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp -o "$ytdlp_path" 2>/dev/null; then
+            chmod a+rx "$ytdlp_path"
+            log "yt-dlp updated successfully" "SUCCESS"
+        else
+            log "Failed to update yt-dlp, using existing version" "WARNING"
+        fi
+        
+        # Update last check date
+        echo "$current_date" > "$last_check_file"
+    else
+        log "yt-dlp is up to date (checked today)" "INFO"
+    fi
+}
+
+# Check if yt-dlp is installed and update if needed
+check_and_update_ytdlp
+
 if ! command -v yt-dlp &> /dev/null; then
     log "yt-dlp is not installed" "ERROR"
     log "Please install it using: pip3 install -U yt-dlp" "INFO"
