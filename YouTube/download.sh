@@ -108,6 +108,12 @@ check_and_update_ytdlp() {
         if curl -L https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp -o "$ytdlp_path" 2>/dev/null; then
             chmod a+rx "$ytdlp_path"
             log "yt-dlp updated successfully" "SUCCESS"
+            
+            # Also try to update yt-dlp via pip as backup
+            if command -v pip3 &> /dev/null; then
+                log "Also updating yt-dlp via pip..." "INFO"
+                pip3 install -U yt-dlp --quiet 2>/dev/null || true
+            fi
         else
             log "Failed to update yt-dlp, using existing version" "WARNING"
         fi
@@ -272,34 +278,82 @@ download_video() {
                   --audio-quality 0 \
                   --video-multistreams \
                   --audio-multistreams \
-                  --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
+                  --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
                   --referer "https://www.youtube.com/" \
                   --add-header "Accept-Language: en-us,en;q=0.5" \
+                  --add-header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+                  --add-header "Accept-Encoding: gzip, deflate" \
+                  --add-header "DNT: 1" \
+                  --add-header "Connection: keep-alive" \
+                  --add-header "Upgrade-Insecure-Requests: 1" \
                   --sleep-requests 1 \
                   --sleep-interval 1 \
                   --max-sleep-interval 3 \
                   --fragment-retries 10 \
                   --retries 10 \
+                  --extractor-args "youtube:player_client=android,web" \
                   "$url" \
                   -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
             download_success=true
         fi
         
-        # Strategy 2: If first attempt failed, try with different format selection
+        # Strategy 2: Try with different player client
         if [[ "$download_success" == false ]]; then
-            log "First attempt failed, trying with 'best' format..." "WARNING"
-            if yt-dlp -f "best" \
+            log "First attempt failed, trying with TV client..." "WARNING"
+            if yt-dlp -f "$format" \
                       --no-playlist \
                       --no-warnings \
                       --progress \
                       --merge-output-format mp4 \
-                      --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
+                      --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
                       --referer "https://www.youtube.com/" \
                       --sleep-requests 2 \
                       --sleep-interval 2 \
                       --max-sleep-interval 5 \
                       --fragment-retries 15 \
                       --retries 15 \
+                      --extractor-args "youtube:player_client=tv_embedded" \
+                      "$url" \
+                      -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
+                download_success=true
+            fi
+        fi
+        
+        # Strategy 3: Try with 'best' format and different client
+        if [[ "$download_success" == false ]]; then
+            log "Second attempt failed, trying with 'best' format and mobile client..." "WARNING"
+            if yt-dlp -f "best" \
+                      --no-playlist \
+                      --no-warnings \
+                      --progress \
+                      --merge-output-format mp4 \
+                      --user-agent "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1" \
+                      --referer "https://m.youtube.com/" \
+                      --sleep-requests 3 \
+                      --sleep-interval 3 \
+                      --max-sleep-interval 8 \
+                      --fragment-retries 20 \
+                      --retries 20 \
+                      --extractor-args "youtube:player_client=android" \
+                      "$url" \
+                      -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
+                download_success=true
+            fi
+        fi
+        
+        # Strategy 4: Last resort - try with minimal options
+        if [[ "$download_success" == false ]]; then
+            log "Third attempt failed, trying minimal approach..." "WARNING"
+            if yt-dlp -f "worst[height<=480]" \
+                      --no-playlist \
+                      --no-warnings \
+                      --progress \
+                      --merge-output-format mp4 \
+                      --sleep-requests 5 \
+                      --sleep-interval 5 \
+                      --max-sleep-interval 10 \
+                      --fragment-retries 25 \
+                      --retries 25 \
                       "$url" \
                       -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
                 download_success=true
