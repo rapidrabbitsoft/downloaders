@@ -258,8 +258,11 @@ download_video() {
         local filename=$(generate_filename "$url")
         log "Generated filename: $filename" "INFO"
         
-        # Use yt-dlp with best format which automatically handles audio/video merging
-        # Use a robust filename template that handles cases where title is unavailable
+        # Try multiple download strategies to handle 403 errors
+        local download_success=false
+        
+        # Strategy 1: Standard download with bypass options
+        log "Attempting download with bypass options..." "INFO"
         if yt-dlp -f "$format" \
                   --no-playlist \
                   --no-warnings \
@@ -269,8 +272,41 @@ download_video() {
                   --audio-quality 0 \
                   --video-multistreams \
                   --audio-multistreams \
+                  --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
+                  --referer "https://www.youtube.com/" \
+                  --add-header "Accept-Language: en-us,en;q=0.5" \
+                  --sleep-requests 1 \
+                  --sleep-interval 1 \
+                  --max-sleep-interval 3 \
+                  --fragment-retries 10 \
+                  --retries 10 \
                   "$url" \
                   -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
+            download_success=true
+        fi
+        
+        # Strategy 2: If first attempt failed, try with different format selection
+        if [[ "$download_success" == false ]]; then
+            log "First attempt failed, trying with 'best' format..." "WARNING"
+            if yt-dlp -f "best" \
+                      --no-playlist \
+                      --no-warnings \
+                      --progress \
+                      --merge-output-format mp4 \
+                      --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" \
+                      --referer "https://www.youtube.com/" \
+                      --sleep-requests 2 \
+                      --sleep-interval 2 \
+                      --max-sleep-interval 5 \
+                      --fragment-retries 15 \
+                      --retries 15 \
+                      "$url" \
+                      -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
+                download_success=true
+            fi
+        fi
+        
+        if [[ "$download_success" == true ]]; then
             return 0
         fi
         
