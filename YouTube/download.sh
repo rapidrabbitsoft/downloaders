@@ -203,7 +203,16 @@ clean_filename() {
 # Function to fetch video title and generate safe filename
 generate_filename() {
     local url="$1"
-    local video_id=$(echo "$url" | grep -oP '(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)' | head -1)
+    local video_id=""
+    
+    # Extract video ID using portable methods (compatible with macOS/BSD grep)
+    if echo "$url" | grep -q "youtube\.com/watch"; then
+        video_id=$(echo "$url" | sed 's/.*[?&]v=\([^&]*\).*/\1/')
+    elif echo "$url" | grep -q "youtu\.be/"; then
+        video_id=$(echo "$url" | sed 's/.*youtu\.be\/\([^?&]*\).*/\1/')
+    elif echo "$url" | grep -q "youtube\.com/embed/"; then
+        video_id=$(echo "$url" | sed 's/.*youtube\.com\/embed\/\([^?&]*\).*/\1/')
+    fi
     
     # Try to get the video title
     local title=""
@@ -222,7 +231,7 @@ generate_filename() {
     else
         # Fallback to hash-based filename
         if [[ -z "$video_id" ]]; then
-            video_id=$(echo "$url" | md5sum | cut -c1-12)
+            video_id=$(echo "$url" | md5 | cut -c1-12)
         fi
         echo "youtube_${video_id}"
     fi
