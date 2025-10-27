@@ -186,6 +186,58 @@ get_best_format() {
     echo "best"
 }
 
+# Function to strip emojis and clean filename
+clean_filename() {
+    local filename="$1"
+    # Remove emojis and other non-ASCII characters, keep only alphanumeric, spaces, hyphens, underscores
+    echo "$filename" | sed 's/[^a-zA-Z0-9 -_]//g' | sed 's/  */ /g' | sed 's/^ *//g' | sed 's/ *$//g'
+}
+
+# Function to extract Facebook video ID from URL
+extract_fb_video_id() {
+    local url="$1"
+    local video_id=""
+    
+    # Extract video ID from Facebook URL patterns
+    if echo "$url" | grep -q "facebook\.com/.*/videos/"; then
+        video_id=$(echo "$url" | sed 's/.*\/videos\/\([^/?]*\).*/\1/')
+    elif echo "$url" | grep -q "facebook\.com/.*/reel/"; then
+        video_id=$(echo "$url" | sed 's/.*\/reel\/\([^/?]*\).*/\1/')
+    elif echo "$url" | grep -q "facebook\.com/watch"; then
+        video_id=$(echo "$url" | sed 's/.*[?&]v=\([^&]*\).*/\1/')
+    fi
+    
+    echo "$video_id"
+}
+
+# Function to fetch video title and generate safe filename
+generate_filename() {
+    local url="$1"
+    local video_id=$(extract_fb_video_id "$url")
+    
+    # Try to get the video title
+    local title=""
+    if command -v yt-dlp &> /dev/null; then
+        title=$(yt-dlp --get-title --no-warnings "$url" 2>/dev/null | head -1)
+    fi
+    
+    if [[ -n "$title" && "$title" != "NA" ]]; then
+        # Clean the title and use it
+        local clean_title=$(clean_filename "$title")
+        if [[ -n "$clean_title" ]]; then
+            echo "${clean_title}-${video_id}"
+        else
+            echo "facebook_${video_id}"
+        fi
+    else
+        # Fallback to hash-based filename
+        if [[ -z "$video_id" ]]; then
+            video_id=$(echo "$url" | md5 | cut -c1-12)
+        fi
+        echo "facebook_${video_id}"
+    fi
+}
+
 # Function to download a single video with retries
 download_video() {
     local url="$1"
@@ -203,13 +255,17 @@ download_video() {
         
         log "Selected format: $format" "INFO"
         
+        # Generate a clean filename
+        local filename=$(generate_filename "$url")
+        log "Generated filename: $filename" "INFO"
+        
         if yt-dlp -f "$format" \
                   --no-playlist \
                   --no-warnings \
                   --progress \
                   --merge-output-format mp4 \
                   "$url" \
-                  -o "$DOWNLOAD_DIR/%(title.100)s.%(ext)s"; then
+                  -o "$DOWNLOAD_DIR/$filename.%(ext)s"; then
             return 0
         fi
         
