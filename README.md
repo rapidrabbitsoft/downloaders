@@ -38,6 +38,42 @@ cd downloaders
 
 ## Usage
 
+### Master Downloader Script (`download.sh`)
+
+The `download.sh` script is the recommended way to download from multiple platforms. It automatically detects the platform from URLs and routes them to the appropriate downloader.
+
+**Features:**
+- Automatic platform detection (YouTube, Facebook, Gab)
+- Processes URLs from a master `downloads.txt` file
+- Supports mixed URLs from different platforms
+- Color-coded logging
+- Comprehensive error handling
+
+**Options:**
+- `-u, --urls` - Comma-separated list of URLs from any platform
+- `-f, --file` - Path to downloads.txt file (default: ./downloads.txt)
+- `-h, --help` - Display help message
+
+**Examples:**
+```bash
+# Download from master downloads.txt file
+./download.sh
+
+# Download specific URLs
+./download.sh -u "https://youtube.com/watch?v=...,https://facebook.com/watch?v=..."
+
+# Use custom downloads file
+./download.sh -f /path/to/my/downloads.txt
+```
+
+**Master downloads.txt:**
+Create a `downloads.txt` file in the root directory with one URL per line:
+```
+https://www.youtube.com/watch?v=VIDEO_ID
+https://www.facebook.com/videos/VIDEO_ID
+https://gab.com/posts/POST_ID
+```
+
 ### All-in-One Script (`all.sh`)
 
 The `all.sh` script allows you to run all downloaders with prefixed flags for each service.
@@ -138,12 +174,17 @@ cd Facebook
 
 ### Bulk Downloads
 
-All downloaders support bulk downloads using a `downloads.txt` file in their respective directories. Simply add one URL per line to the file and run the script without the `-u` flag.
+There are two ways to do bulk downloads:
+
+1. **Master downloads.txt** (Recommended): Add URLs from all platforms to the root `downloads.txt` file and run `./download.sh`
+2. **Platform-specific**: Each downloader supports bulk downloads using a `downloads.txt` file in their respective directories. Simply add one URL per line to the file and run the script without the `-u` flag.
 
 ## File Structure
 
 ```
 Downloaders/
+├── download.sh            # Master downloader (recommended)
+├── downloads.txt          # Master downloads file
 ├── all.sh                 # All-in-one downloader script
 ├── YouTube/
 │   ├── download.sh        # YouTube downloader
@@ -154,7 +195,7 @@ Downloaders/
 │   ├── downloads.txt      # Bulk URLs for Gab
 │   └── Downloads/         # Gab downloads directory
 └── Facebook/
-    ├── downloads.sh       # Facebook downloader
+    ├── download.sh        # Facebook downloader
     ├── downloads.txt      # Bulk URLs for Facebook
     └── Downloads/         # Facebook downloads directory
 ```
