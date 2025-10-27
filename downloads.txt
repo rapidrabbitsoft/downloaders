@@ -1,0 +1,12 @@
+# Master Downloads File
+# Add URLs from any supported platform below
+# Supported platforms:
+#   - YouTube (youtube.com, youtu.be)
+#   - Facebook (facebook.com)
+#   - Gab (gab.com)
+
+# Example URLs (replace with your actual URLs):
+# https://www.youtube.com/watch?v=dQw4w9WgXcQ
+# https://www.facebook.com/watch/?v=1234567890
+# https://gab.com/posts/123456
+
